@@ -1,1 +1,138 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta
+    name="viewport"
+    content="width=720, initial-scale=1, maximum-scale=1, user-scalable=no"
+  />
+  <title>YouTube WebView Creative</title>
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      overflow: hidden;
+    }
+
+    /* Fixed Skullcandy-style base coordinate system */
+    #stage {
+      width: 720px;
+      height: 810px;
+      background: #000;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* 16:9 video letterboxed inside 720x810 */
+    #playerFrame {
+      width: 720px;
+      height: 405px;
+      border: 0;
+      background: #000;
+    }
+
+    #overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    #cta {
+      pointer-events: auto;
+      font-family: Arial, sans-serif;
+      font-size: 28px;
+      padding: 18px 26px;
+      border-radius: 14px;
+      background: rgba(0,0,0,0.65);
+      border: 1px solid rgba(255,255,255,0.35);
+      color: #fff;
+      text-align: center;
+      user-select: none;
+    }
+
+    #sub {
+      display: block;
+      margin-top: 8px;
+      font-size: 18px;
+      opacity: 0.85;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="stage">
+    <iframe
+      id="playerFrame"
+      title="YouTube video player"
+      allow="autoplay; encrypted-media; picture-in-picture"
+      allowfullscreen
+      referrerpolicy="strict-origin-when-cross-origin">
+    </iframe>
+
+    <div id="overlay">
+      <div id="cta">
+        Tap to unmute / play
+        <span id="sub">If autoplay doesn’t start, tap once</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    const videoId = params.get("video_id") || "oW4auh6PGcI"; // default test video
+
+    const player = document.getElementById("playerFrame");
+    const cta = document.getElementById("cta");
+
+    function buildSrc(muted) {
+      const base = "https://www.youtube-nocookie.com/embed/" + videoId;
+      const q = new URLSearchParams();
+      q.set("autoplay", "1");          // best-effort autoplay
+      q.set("mute", muted ? "1" : "0");// start muted
+      q.set("playsinline", "1");       // best-effort inline
+      q.set("controls", "1");
+      q.set("rel", "0");
+      q.set("modestbranding", "1");
+      q.set("enablejsapi", "1");
+      q.set("origin", location.origin);
+      return base + "?" + q.toString();
+    }
+
+    // Attempt muted autoplay on load
+    player.src = buildSrc(true);
+
+    function sendCommand(cmd) {
+      try {
+        player.contentWindow.postMessage(
+          JSON.stringify({ event: "command", func: cmd, args: [] }),
+          "*"
+        );
+      } catch (e) {}
+    }
+
+    function userPlay() {
+      // Reload unmuted on user gesture
+      player.src = buildSrc(false);
+
+      // Best-effort play + unmute
+      setTimeout(() => {
+        sendCommand("playVideo");
+        sendCommand("unMute");
+      }, 500);
+    }
+
+    cta.addEventListener("click", userPlay);
+    cta.addEventListener("touchend", userPlay);
+  </script>
+</body>
+</html>
 
